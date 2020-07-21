@@ -55,56 +55,56 @@ namespace nsNetwork
         /*!
          * \brief sendData          网络信息发送
          * \param baData            [in]            网络数据信息
-         * \param socketDiescriptor [in]            socket描述符(作为客户端时缺省)
+         * \param socketDescriptor [in]            socket描述符(作为客户端时缺省)
          * \return                  成功/失败
          */
-        bool sendData(QByteArray baData, int socketDiescriptor = 0);
+        bool sendData(QByteArray baData, int socketDescriptor = 0);
 
         /*!
          * \brief readData          按数据长度获取网络数据
          * \param length            [in]            数据长度
-         * \param socketDiescriptor [in]            socket描述符(作为客户端时缺省)
+         * \param socketDescriptor [in]            socket描述符(作为客户端时缺省)
          * \return                  网络数据信息
          */
-        QByteArray readData(int length, int socketDiescriptor = 0);
+        QByteArray readData(int length, int socketDescriptor = 0);
 
         /*!
          * \brief readAllData       获取缓存区所有网络数据
-         * \param socketDiescriptor [in]            socket描述符(作为客户端时缺省)
+         * \param socketDescriptor [in]            socket描述符(作为客户端时缺省)
          * \return                  网络数据信息
          */
-        QByteArray readAllData(int socketDiescriptor = 0);
+        QByteArray readAllData(int socketDescriptor = 0);
 
         /*!
          * \brief bytesAvailable    可读位数获取
-         * \param socketDiescriptor [in]            socket描述符(作为客户端时缺省)
+         * \param socketDescriptor [in]            socket描述符(作为客户端时缺省)
          * \return                  网络数据可读长度
          */
-        quint64 bytesAvailable(int socketDiescriptor = 0);
+        quint64 bytesAvailable(int socketDescriptor = 0);
 
         /*!
          * \brief clearHeartBeatCount   清空心跳帧超时计数值
-         * \param socketDiescriptor     [in]            socket描述符(作为客户端时缺省)
+         * \param socketDescriptor     [in]            socket描述符(作为客户端时缺省)
          */
-        void clearHeartBeatCount(int socketDiescriptor = 0);
+        void clearHeartBeatCount(int socketDescriptor = 0);
 
     signals:
         /*!
          * \brief sgConnected           成功连接信号
-         * \param socketDiescriptor     socket描述符
+         * \param socketDescriptor     socket描述符
          */
-        void sgConnected(int socketDiescriptor);
+        void sgConnected(int socketDescriptor);
 
         /*!
          * \brief sgDisConnected        连接中断信号
-         * \param socketDiescriptor     socket描述符
+         * \param socketDescriptor     socket描述符
          */
-        void sgDisConnected(int socketDiescriptor);
+        void sgDisConnected(int socketDescriptor);
         /*!
          * \brief sgReadyRead           网络数据读准备信号
-         * \param socketDiescriptor     socket描述符
+         * \param socketDescriptor     socket描述符
          */
-        void sgReadyRead(int socketDiescriptor);
+        void sgReadyRead(int socketDescriptor);
 
         // For Client
         /*!

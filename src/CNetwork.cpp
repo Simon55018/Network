@@ -100,14 +100,14 @@ namespace nsNetwork
         return false;
     }
 
-    bool CNetwork::sendData(QByteArray baData, int socketDiescriptor)
+    bool CNetwork::sendData(QByteArray baData, int socketDescriptor)
     {
         Q_D(CNetwork);
 
         if( EM_SERVICE == d->m_type
-                && NULL != d->m_server && socketDiescriptor != 0)
+                && NULL != d->m_server && socketDescriptor != 0)
         {
-            return d->m_server->send(baData, socketDiescriptor);
+            return d->m_server->send(baData, socketDescriptor);
         }
         else if( EM_CLIENT == d->m_type && NULL != d->m_client )
         {
@@ -117,14 +117,14 @@ namespace nsNetwork
         return false;
     }
 
-    QByteArray CNetwork::readData(int length, int socketDiescriptor)
+    QByteArray CNetwork::readData(int length, int socketDescriptor)
     {
         Q_D(CNetwork);
 
         if( EM_SERVICE == d->m_type
-                && NULL != d->m_server && socketDiescriptor != 0 )
+                && NULL != d->m_server && socketDescriptor != 0 )
         {
-            return d->m_server->read(length, socketDiescriptor);
+            return d->m_server->read(length, socketDescriptor);
         }
         else if( EM_CLIENT == d->m_type && NULL != d->m_client )
         {
@@ -134,14 +134,14 @@ namespace nsNetwork
         return QByteArray();
     }
 
-    QByteArray CNetwork::readAllData(int socketDiescriptor)
+    QByteArray CNetwork::readAllData(int socketDescriptor)
     {
         Q_D(CNetwork);
 
         if( EM_SERVICE == d->m_type
-                && NULL != d->m_server && socketDiescriptor != 0 )
+                && NULL != d->m_server && socketDescriptor != 0 )
         {
-            return d->m_server->readAll(socketDiescriptor);
+            return d->m_server->readAll(socketDescriptor);
         }
         else if( EM_CLIENT == d->m_type && NULL != d->m_client )
         {
@@ -151,14 +151,14 @@ namespace nsNetwork
         return QByteArray();
     }
 
-    quint64 CNetwork::bytesAvailable(int socketDiescriptor)
+    quint64 CNetwork::bytesAvailable(int socketDescriptor)
     {
         Q_D(CNetwork);
 
         if( EM_SERVICE == d->m_type
-                && NULL != d->m_server && socketDiescriptor != 0 )
+                && NULL != d->m_server && socketDescriptor != 0 )
         {
-            return d->m_server->bytesAvailable(socketDiescriptor);
+            return d->m_server->bytesAvailable(socketDescriptor);
         }
         else if( EM_CLIENT == d->m_type && NULL != d->m_client )
         {
@@ -168,14 +168,14 @@ namespace nsNetwork
         return 0;
     }
 
-    void CNetwork::clearHeartBeatCount(int socketDiescriptor)
+    void CNetwork::clearHeartBeatCount(int socketDescriptor)
     {
         Q_D(CNetwork);
 
         if( EM_SERVICE == d->m_type
-                && NULL != d->m_server && socketDiescriptor != 0 )
+                && NULL != d->m_server && socketDescriptor != 0 )
         {
-            return d->m_server->clearHeartBeatCount(socketDiescriptor);
+            return d->m_server->clearHeartBeatCount(socketDescriptor);
         }
         else if( EM_CLIENT == d->m_type && NULL != d->m_client )
         {

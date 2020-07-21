@@ -33,10 +33,10 @@ namespace nsNetwork
         /*!
          * \brief send              网络数据发送
          * \param baData            [in]        网络数据
-         * \param socketDiescriptor [in]        socket描述符
+         * \param socketDescriptor  [in]        socket描述符
          * \return                  成功/失败
          */
-        bool send(QByteArray baData, int socketDiescriptor);
+        bool send(QByteArray baData, int socketDescriptor);
 
         /*!
          * \brief read              按长度读取网络数据
@@ -55,14 +55,14 @@ namespace nsNetwork
 
         /*!
          * \brief bytesAvailable    可读位数获取
-         * \param socketDiescriptor [in]            socket描述符
+         * \param socketDescriptor  [in]            socket描述符
          * \return                  网络数据可读长度
          */
         quint64 bytesAvailable(int socketDescriptor);
 
         /*!
          * \brief clearHeartBeatCount   清空心跳帧超时计数值
-         * \param socketDiescriptor     [in]            socket描述符
+         * \param socketDescriptor      [in]            socket描述符
          */
         void clearHeartBeatCount(int socketDescriptor);
 
@@ -94,52 +94,75 @@ namespace nsNetwork
     protected slots:
         /*!
          * \brief stHeartBreak          处理心跳帧终止信号
-         * \param socketDiescriptor     socket描述符
+         * \param socketDescriptor      socket描述符
          */
-        void stHeartBreak(int socketDiescriptor);
+        void stHeartBreak(int socketDescriptor);
         /*!
          * \brief stDisConnected        处理断开连接信号
-         * \param socketDiescriptor     socket描述符
+         * \param socketDescriptor      socket描述符
          */
-        void stDisConnected(int socketDiescriptor);
+        void stDisConnected(int socketDescriptor);
 
     signals:
         /*!
          * \brief sgConnected           成功连接信号
-         * \param socketDiescriptor     socket描述符
+         * \param socketDescriptor      socket描述符
          */
-        void sgConnected(int socketDiescriptor);
+        void sgConnected(int socketDescriptor);
 
         /*!
          * \brief sgDisConnected        连接中断信号
-         * \param socketDiescriptor     socket描述符
+         * \param socketDescriptor     socket描述符
          */
-        void sgDisConnected(int socketDiescriptor);
+        void sgDisConnected(int socketDescriptor);
         /*!
          * \brief sgReadyRead           网络数据读准备信号
-         * \param socketDiescriptor     socket描述符
+         * \param socketDescriptor      socket描述符
          */
-        void sgReadyRead(int socketDiescriptor);
+        void sgReadyRead(int socketDescriptor);
 
     private:
         QMutex      m_mutex;
         int         m_lPort;
         QMap<int, CTcpSocket*>              m_mapClientSocket;
-        QMap<int, CServerHeartBeatThread*>  m_mapHeartBeatThread;
+        CServerHeartBeatThread              *m_pHeartBeatThread;
     };
 
-    class CServerHeartBeatThread : public IHeartBeatThread
+    class CServerHeartBeatThread : public QThread
     {
         Q_OBJECT
     public:
-        explicit CServerHeartBeatThread(CTcpSocket* pTcpClient);
+        explicit CServerHeartBeatThread(QObject *parent = 0);
         ~CServerHeartBeatThread();
+
+        void pendingTcpSocket(CTcpSocket *pTcpClient);
+
+        /*!
+         * \brief setHeartBeatEnable    设置心跳帧处理线程工作状态
+         * \param bIsEnable             [in]        开始/停止
+         */
+        void setHeartBeatEnable(const bool bIsEnable);
+
+        /*!
+         * \brief stop  停止心跳帧检测线程
+         */
+        void stop();
+
+        void clearHeartBeatCount(int socketDescriptor);
+
+        void clearPendingTcpSocket();
+
+        void removeTcpSocket(int socketDescriptor);
 
     signals:
         void sgHeartBreak(int);
 
     protected:
         void run();
+
+    private:
+        QMap<int, CTcpSocket*>      m_mapTcpSocket;
+        bool                        m_bIsHeartBeatEnable;
     };
 } // namespace nsNetwork
 

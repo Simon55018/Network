@@ -7,25 +7,29 @@ namespace nsNetwork
     CClient::CClient(const QString &sAddr, const int lPort)
         : m_sIPAddr(sAddr), m_lPort(lPort)
     {
-        m_pHeartThread = NULL;
+        m_pHeartThread = new CClientHeartBeatThread(this);
+        connect(m_pHeartThread, SIGNAL(sgSendHeartBeat()), this, SIGNAL(sgSendHeartBeat()));
+        connect(m_pHeartThread, SIGNAL(sgDisconnected(int)), this, SIGNAL(sgDisConnected(int)));
     }
 
     CClient::~CClient()
     {
-        CTcpSocket::close();
-
-        m_pHeartThread->stop();
-
+        //! 先释放心跳帧线程资源,防止CTcpSocket先释放导致段错误
         if( NULL != m_pHeartThread )
         {
+            m_pHeartThread->stop();
+
             delete m_pHeartThread;
             m_pHeartThread = NULL;
         }
+
+        CTcpSocket::close();
     }
 
     bool CClient::start()
     {
-        if( QAbstractSocket::ConnectedState != this->state() )
+        if( m_pHeartThread != NULL &&
+                QAbstractSocket::ConnectedState != this->state() )
         {
             this->connectToHost(m_sIPAddr, m_lPort);
 
@@ -34,11 +38,9 @@ namespace nsNetwork
                 return false;
             }
         }
-
-        if( m_pHeartThread == NULL )
+        else
         {
-            m_pHeartThread = new CClientHeartBeatThread(this);
-            connect(m_pHeartThread, SIGNAL(sgSendHeartBeat()), this, SIGNAL(sgSendHeartBeat()));
+            return false;
         }
 
         if( !m_pHeartThread->isRunning() )
@@ -54,11 +56,7 @@ namespace nsNetwork
         if ( NULL != m_pHeartThread )
         {
             //终止检测线程中的计数动作
-            m_pHeartThread->setHeartBeatEnable(false);
-
-            //关闭线程操作
-            m_pHeartThread->quit();
-            m_pHeartThread->wait();
+            m_pHeartThread->stop();
         }
 
         CTcpSocket::close();
@@ -69,15 +67,36 @@ namespace nsNetwork
         m_pHeartThread->clearHeartBeatCount();
     }
 
-    CClientHeartBeatThread::CClientHeartBeatThread(CTcpSocket *pTcpClient)
-        : IHeartBeatThread(pTcpClient)
+    CClientHeartBeatThread::CClientHeartBeatThread(CTcpSocket *pTcpSocket, QObject *parent)
+        : QThread(parent), m_pTcpSocket(pTcpSocket)
     {
-
+        clearHeartBeatCount();
+        setHeartBeatEnable(true);
     }
 
     CClientHeartBeatThread::~CClientHeartBeatThread()
     {
+        stop();
+    }
 
+    void CClientHeartBeatThread::stop()
+    {
+        this->setHeartBeatEnable(false);
+        if( this->isRunning() )
+        {
+            this->quit();
+            this->wait();
+        }
+    }
+
+    void CClientHeartBeatThread::clearHeartBeatCount()
+    {
+        m_pTcpSocket->clearHeartBeatCount();
+    }
+
+    void CClientHeartBeatThread::setHeartBeatEnable(const bool bIsEnable)
+    {
+        m_bIsHeartBeatEnable = bIsEnable;
     }
 
     void CClientHeartBeatThread::run()
@@ -85,15 +104,15 @@ namespace nsNetwork
         //-------------------------------------------//
         //------------每隔 30s 发送一帧心跳帧-----------//
         //------------------------------------------//
-        while ( isHeartBeatWorking() )
+        while ( m_bIsHeartBeatEnable )
         {
-            countHeartBeat();
-            if( 4 == getHeartBeatCount() )
+            m_pTcpSocket->countHeartBeat();
+            if( 4 == m_pTcpSocket->getHeartBeatCount() )
             {
                 // 重新连接
-                if( m_pTcpClient->resetTcpSocket() )
+                if( m_pTcpSocket->resetTcpSocket() )
                 {
-                    clearHeartBeatCount();
+                    this->clearHeartBeatCount();
                     continue;
                 }
                 break;
@@ -104,6 +123,7 @@ namespace nsNetwork
             emit sgSendHeartBeat();
             sleep(30);
         }
+        emit sgDisconnected(m_pTcpSocket->socketDescriptor());
     }
 
 }

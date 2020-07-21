@@ -7,6 +7,11 @@ namespace nsNetwork
     {
         //! @todo 暂时设定最大连接数为100
         setMaxPendingConnections(100);
+
+        // 开启服务端心跳帧处理线程
+        m_pHeartBeatThread = new CServerHeartBeatThread;
+        connect(m_pHeartBeatThread, SIGNAL(sgHeartBreak(int)), this, SLOT(stHeartBreak(int)));
+        m_pHeartBeatThread->start();
     }
 
     CServer::~CServer()
@@ -26,45 +31,34 @@ namespace nsNetwork
 
     void CServer::close()
     {
-        foreach(int key, m_mapClientSocket.keys())
+        if( NULL != m_pHeartBeatThread )
         {
-            CServerHeartBeatThread *thread = m_mapHeartBeatThread.value(key);
-            if( NULL != thread )
-            {
-                thread->quit();
-                thread->wait();
-
-                delete thread;
-                thread = NULL;
-                m_mapClientSocket.remove(key);
-            }
+            m_pHeartBeatThread->stop();
+            m_pHeartBeatThread->clearPendingTcpSocket();
         }
+
+        //foreach(int key, m_mapClientSocket.keys())
+        //{
+        //    CTcpSocket *socket = m_mapClientSocket.value(key);
+        //    if( NULL != socket )
+        //    {
+        //        delete socket;
+        //        socket = NULL;
+        //        m_mapClientSocket.remove(key);
+        //    }
+        //}
+        qDeleteAll(m_mapClientSocket);
+        m_mapClientSocket.clear();
 
         // 调用该函数会把连接该服务器的QTcpSocket对象资源释放
         QTcpServer::close();
-
-        //! @todo QTcpServer和CTcpServer释放顺序有待商榷
-        // QTcpSocket与CTcpSocket并不相同，所以还需将CTcpSocket资源释放
-        foreach(int key, m_mapClientSocket.keys())
-        {
-            CServerHeartBeatThread *thread = m_mapHeartBeatThread.value(key);
-            if( NULL != thread )
-            {
-                thread->quit();
-                thread->wait();
-
-                delete thread;
-                thread = NULL;
-            }
-            m_mapClientSocket.remove(key);
-        }
     }
 
-    bool CServer::send(QByteArray baData, int socketDiescriptor)
+    bool CServer::send(QByteArray baData, int socketDescriptor)
     {
         m_mutex.lock();
 
-        CTcpSocket *tcpClient = m_mapClientSocket.value(socketDiescriptor);
+        CTcpSocket *tcpClient = m_mapClientSocket.value(socketDescriptor);
 
         bool bRet = tcpClient->send(baData);
 
@@ -94,7 +88,7 @@ namespace nsNetwork
 
     void CServer::clearHeartBeatCount(int socketDescriptor)
     {
-        m_mapHeartBeatThread.value(socketDescriptor)->clearHeartBeatCount();
+        m_pHeartBeatThread->clearHeartBeatCount(socketDescriptor);
     }
 
     bool CServer::hasPendingConnections() const
@@ -117,6 +111,7 @@ namespace nsNetwork
         tcpClient->setSocketDescriptor(handle);
 
         addPendingConnection(tcpClient);
+        m_pHeartBeatThread->pendingTcpSocket(tcpClient);
     }
 
     void CServer::addPendingConnection(CTcpSocket *tcpClient)
@@ -128,45 +123,35 @@ namespace nsNetwork
         // 设置为队列形式触发，防止同一时间多个客户端断连
         connect(tcpClient, SIGNAL(sgDisConnected(int)),
                 this, SLOT(stDisConnected(int)), Qt::QueuedConnection);
-
-        CServerHeartBeatThread* thread = new CServerHeartBeatThread(tcpClient);
-        connect(thread, SIGNAL(sgHeartBreak(int)), this, SLOT(stHeartBreak(int)));
-        m_mapHeartBeatThread.insert(tcpClient->socketDescriptor(), thread);
-        thread->start();
     }
 
-    void CServer::stHeartBreak(int socketDiescriptor)
+    void CServer::stHeartBreak(int socketDescriptor)
     {
         // 当心跳包接受异常，说明客户端处于不正常状态，断连并释放资源
-        CTcpSocket *tcpClient = m_mapClientSocket.value(socketDiescriptor);
+        CTcpSocket *tcpClient = m_mapClientSocket.value(socketDescriptor);
+
+        m_pHeartBeatThread->removeTcpSocket(socketDescriptor);
+
         if( NULL != tcpClient )
         {
             delete tcpClient;
             tcpClient = NULL;
         }
-        m_mapClientSocket.remove(socketDiescriptor);
-
-        CServerHeartBeatThread *thread = m_mapHeartBeatThread.value(socketDiescriptor);
-        thread->stop();
-        if( NULL != thread )
-        {
-            delete thread;
-            thread = NULL;
-        }
-        m_mapHeartBeatThread.remove(socketDiescriptor);
+        m_mapClientSocket.remove(socketDescriptor);
     }
 
-    void CServer::stDisConnected(int socketDiescriptor)
+    void CServer::stDisConnected(int socketDescriptor)
     {
-        stHeartBreak(socketDiescriptor);
+        stHeartBreak(socketDescriptor);
 
-        emit sgDisConnected(socketDiescriptor);
+        emit sgDisConnected(socketDescriptor);
     }
 
-    CServerHeartBeatThread::CServerHeartBeatThread(CTcpSocket *pTcpClient)
-        : IHeartBeatThread(pTcpClient)
+    CServerHeartBeatThread::CServerHeartBeatThread(QObject *parent)
+        : QThread(parent)
     {
-
+        m_mapTcpSocket.clear();
+        setHeartBeatEnable(true);
     }
 
     CServerHeartBeatThread::~CServerHeartBeatThread()
@@ -174,19 +159,56 @@ namespace nsNetwork
 
     }
 
+    void CServerHeartBeatThread::pendingTcpSocket(CTcpSocket *pTcpClient)
+    {
+        m_mapTcpSocket.insert(pTcpClient->socketDescriptor(), pTcpClient);
+    }
+
+    void CServerHeartBeatThread::stop()
+    {
+        this->setHeartBeatEnable(false);
+        if( this->isRunning() )
+        {
+            this->quit();
+            this->wait();
+        }
+    }
+
+    void CServerHeartBeatThread::clearHeartBeatCount(int socketDescriptor)
+    {
+        m_mapTcpSocket.value(socketDescriptor)->clearHeartBeatCount();
+    }
+
+    void CServerHeartBeatThread::clearPendingTcpSocket()
+    {
+        m_mapTcpSocket.clear();
+    }
+
+    void CServerHeartBeatThread::removeTcpSocket(int socketDescriptor)
+    {
+        m_mapTcpSocket.remove(socketDescriptor);
+    }
+
+    void CServerHeartBeatThread::setHeartBeatEnable(const bool bIsEnable)
+    {
+        m_bIsHeartBeatEnable = bIsEnable;
+    }
+
     void CServerHeartBeatThread::run()
     {
-        while (1)
+        while ( m_bIsHeartBeatEnable )
         {
-            countHeartBeat();//加一
-            if ( 4 <= getHeartBeatCount() )
+            foreach(CTcpSocket *socket, m_mapTcpSocket)
             {
-                clearHeartBeatCount();
-                break;
+                socket->countHeartBeat();
+                if( 4 <= socket->getHeartBeatCount() )
+                {
+                    socket->clearHeartBeatCount();
+                    emit sgHeartBreak(socket->socketDescriptor());
+                }
             }
             sleep(30);
         }
-        emit sgHeartBreak(m_pTcpClient->socketDescriptor());
     }
 
 } // namespace nsNetwork

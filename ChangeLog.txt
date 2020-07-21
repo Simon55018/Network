@@ -1,3 +1,9 @@
+r9876 ------peicong.li@excbio.com
+    修改心跳帧线程的socket对象由QList管理转化为QMap,增加遍历效率
+r9874 ------peicong.li@excbio.com
+    修改TcpSocket心跳帧逻辑,主要修改服务端处理心跳为单线程处理,而非每个socket连接单独开辟一个线程处理
+r9871 ------peicong.li@excbio.com
+    解决服务端心跳帧超时后，出现段错误问题
 r9852 ------peicong.li@excbio.com
     增加心跳帧线程暂停函数
 r9823 ------peicong.li@excbio.com
