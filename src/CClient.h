@@ -22,9 +22,10 @@ namespace nsNetwork
 
         /*!
          * \brief start     网络服务开启
+         * \param msecs     [in]        超时时间
          * \return          成功/失败
          */
-        bool start();
+        bool start(int msecs = 3000);
 
         /*!
          * \brief close     关闭网络服务
@@ -36,6 +37,14 @@ namespace nsNetwork
          */
         void clearHeartBeatCount();
 
+        /*!
+         * \brief setLoginCertification 设置是否需要登录验证
+         * \param bLogin                [in]            是/否
+         * \param msecs                 [in]            验证超时时间
+         * \param baLoginCert           [in]            验证信息
+         */
+        void setLoginCertification(bool bLogin, int msecs = 3000, QByteArray baLoginCert = 0);
+
     signals:
         /*!
          * \brief sgSendHeartBeat       需要发送心跳帧
@@ -43,6 +52,10 @@ namespace nsNetwork
         void sgSendHeartBeat();
 
     private:
+        bool                    m_bLoginCert;
+        int                     m_lLoginOverTime;
+        QByteArray              m_baLoginCertification;
+
         QString                 m_sIPAddr;
         int                     m_lPort;
         CClientHeartBeatThread  *m_pHeartThread;

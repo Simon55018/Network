@@ -5,12 +5,19 @@ namespace nsNetwork
     CServer::CServer(int lPort)
         : m_lPort(lPort)
     {
+        // 清空容器
+        m_hashClientSocket.clear();
+        m_listSocketID.clear();
+
+        m_bLoginCert = false;
+        m_lOverTime = 0;
+
         //! @todo 暂时设定最大连接数为100
         setMaxPendingConnections(100);
 
         // 开启服务端心跳帧处理线程
         m_pHeartBeatThread = new CServerHeartBeatThread;
-        connect(m_pHeartBeatThread, SIGNAL(sgHeartBreak(int)), this, SLOT(stHeartBreak(int)));
+        connect(m_pHeartBeatThread, SIGNAL(sgHeartBreak(int)), this, SLOT(stHeartBreak(int)), Qt::UniqueConnection);
         m_pHeartBeatThread->start();
     }
 
@@ -37,18 +44,22 @@ namespace nsNetwork
             m_pHeartBeatThread->clearPendingTcpSocket();
         }
 
-        //foreach(int key, m_mapClientSocket.keys())
+        //foreach(int key, m_hashClientSocket.keys())
         //{
-        //    CTcpSocket *socket = m_mapClientSocket.value(key);
+        //    CTcpSocket *socket = m_hashClientSocket.value(key);
         //    if( NULL != socket )
         //    {
         //        delete socket;
         //        socket = NULL;
-        //        m_mapClientSocket.remove(key);
+        //        m_hashClientSocket.remove(key);
         //    }
         //}
-        qDeleteAll(m_mapClientSocket);
-        m_mapClientSocket.clear();
+
+        // 清空容器
+        m_listSocketID.clear();
+
+        qDeleteAll(m_hashClientSocket);
+        m_hashClientSocket.clear();
 
         // 调用该函数会把连接该服务器的QTcpSocket对象资源释放
         QTcpServer::close();
@@ -58,7 +69,7 @@ namespace nsNetwork
     {
         m_mutex.lock();
 
-        CTcpSocket *tcpClient = m_mapClientSocket.value(socketDescriptor);
+        CTcpSocket *tcpClient = m_hashClientSocket.value(socketDescriptor);
 
         bool bRet = tcpClient->send(baData);
 
@@ -69,21 +80,21 @@ namespace nsNetwork
 
     QByteArray CServer::read(int length, int socketDescriptor)
     {
-        CTcpSocket *tcpClient = m_mapClientSocket.value(socketDescriptor);
+        CTcpSocket *tcpClient = m_hashClientSocket.value(socketDescriptor);
 
         return tcpClient->read(length);
     }
 
     QByteArray CServer::readAll(int socketDescriptor)
     {
-        CTcpSocket *tcpClient = m_mapClientSocket.value(socketDescriptor);
+        CTcpSocket *tcpClient = m_hashClientSocket.value(socketDescriptor);
 
         return tcpClient->readAll();
     }
 
     quint64 CServer::bytesAvailable(int socketDescriptor)
     {
-        return m_mapClientSocket.value(socketDescriptor)->bytesAvailable();
+        return m_hashClientSocket.value(socketDescriptor)->bytesAvailable();
     }
 
     void CServer::clearHeartBeatCount(int socketDescriptor)
@@ -93,16 +104,36 @@ namespace nsNetwork
 
     bool CServer::hasPendingConnections() const
     {
-        return !m_mapClientSocket.isEmpty();
+        return !m_listSocketID.isEmpty();
     }
 
-    CTcpSocket *CServer::nextPendingConnection(int socketDescriptor)
+    CTcpSocket *CServer::nextPendingConnection()
     {
-        if( m_mapClientSocket.isEmpty() )
-        {
-            return NULL;
-        }
-        return m_mapClientSocket.take(socketDescriptor);
+        int socketDescriptor = m_listSocketID.takeFirst();
+
+        return m_hashClientSocket.take(socketDescriptor);
+    }
+
+    void CServer::setLoginCertification(bool bLogin, int msecs)
+    {
+        m_bLoginCert = bLogin;
+        m_lOverTime = msecs;
+    }
+
+    void CServer::acceptConnection(int socketDescriptor)
+    {
+        CTcpSocket *tcpClient = m_hashClientSocket.value(socketDescriptor);
+        acceptConnection(tcpClient);
+    }
+
+    void CServer::rejectConnection(int socketDescriptor)
+    {
+        stDisConnected(socketDescriptor);
+    }
+
+    bool CServer::waitForReadyRead(int socketDescriptor, int msecs)
+    {
+        return m_hashClientSocket.value(socketDescriptor)->waitForReadyRead(msecs);
     }
 
     void CServer::incomingConnection(int handle)
@@ -111,24 +142,36 @@ namespace nsNetwork
         tcpClient->setSocketDescriptor(handle);
 
         addPendingConnection(tcpClient);
-        m_pHeartBeatThread->pendingTcpSocket(tcpClient);
+
+        if( m_bLoginCert )
+        {
+            if( tcpClient->waitForReadyRead(m_lOverTime) )
+            {
+                QByteArray baLogin = tcpClient->readAll();
+                emit sgLoginCertInfo(tcpClient->socketDescriptor(), baLogin);
+            }
+            else
+            {
+                stDisConnected(tcpClient->socketDescriptor());
+            }
+        }
+        else
+        {
+            acceptConnection(tcpClient);
+        }
     }
 
     void CServer::addPendingConnection(CTcpSocket *tcpClient)
     {
-        m_mapClientSocket.insert(tcpClient->socketDescriptor(), tcpClient);
-
-        connect(tcpClient, SIGNAL(sgReadyRead(int)),  this, SIGNAL(sgReadyRead(int)));
-        connect(tcpClient, SIGNAL(sgConnected(int)), this, SIGNAL(sgConnected(int)));
-        // 设置为队列形式触发，防止同一时间多个客户端断连
-        connect(tcpClient, SIGNAL(sgDisConnected(int)),
-                this, SLOT(stDisConnected(int)), Qt::QueuedConnection);
+        m_hashClientSocket.insert(tcpClient->socketDescriptor(), tcpClient);
+        m_listSocketID.append(tcpClient->socketDescriptor());
+        m_pHeartBeatThread->pendingTcpSocket(tcpClient);
     }
 
     void CServer::stHeartBreak(int socketDescriptor)
     {
         // 当心跳包接受异常，说明客户端处于不正常状态，断连并释放资源
-        CTcpSocket *tcpClient = m_mapClientSocket.value(socketDescriptor);
+        CTcpSocket *tcpClient = m_hashClientSocket.value(socketDescriptor);
 
         m_pHeartBeatThread->removeTcpSocket(socketDescriptor);
 
@@ -137,7 +180,7 @@ namespace nsNetwork
             delete tcpClient;
             tcpClient = NULL;
         }
-        m_mapClientSocket.remove(socketDescriptor);
+        m_hashClientSocket.remove(socketDescriptor);
     }
 
     void CServer::stDisConnected(int socketDescriptor)
@@ -145,6 +188,15 @@ namespace nsNetwork
         stHeartBreak(socketDescriptor);
 
         emit sgDisConnected(socketDescriptor);
+    }
+
+    void CServer::acceptConnection(CTcpSocket *tcpClient)
+    {
+        connect(tcpClient, SIGNAL(sgReadyRead(int)),  this, SIGNAL(sgReadyRead(int)));
+        connect(tcpClient, SIGNAL(sgConnected(int)), this, SIGNAL(sgConnected(int)));
+        // 设置为队列形式触发，防止同一时间多个客户端断连
+        connect(tcpClient, SIGNAL(sgDisConnected(int)),
+                this, SLOT(stDisConnected(int)), Qt::QueuedConnection);
     }
 
     CServerHeartBeatThread::CServerHeartBeatThread(QObject *parent)

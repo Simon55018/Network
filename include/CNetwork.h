@@ -38,7 +38,7 @@ namespace nsNetwork
          * \brief start     启动网络服务
          * \return          成功/失败
          */
-        bool start();//启动
+        bool start(int msecs = 3000);//启动
 
         /*!
          * \brief close     关闭网络服务
@@ -55,7 +55,7 @@ namespace nsNetwork
         /*!
          * \brief sendData          网络信息发送
          * \param baData            [in]            网络数据信息
-         * \param socketDescriptor [in]            socket描述符(作为客户端时缺省)
+         * \param socketDescriptor  [in]            socket描述符(作为客户端时缺省)
          * \return                  成功/失败
          */
         bool sendData(QByteArray baData, int socketDescriptor = 0);
@@ -63,30 +63,58 @@ namespace nsNetwork
         /*!
          * \brief readData          按数据长度获取网络数据
          * \param length            [in]            数据长度
-         * \param socketDescriptor [in]            socket描述符(作为客户端时缺省)
+         * \param socketDescriptor  [in]            socket描述符(作为客户端时缺省)
          * \return                  网络数据信息
          */
         QByteArray readData(int length, int socketDescriptor = 0);
 
         /*!
          * \brief readAllData       获取缓存区所有网络数据
-         * \param socketDescriptor [in]            socket描述符(作为客户端时缺省)
+         * \param socketDescriptor  [in]            socket描述符(作为客户端时缺省)
          * \return                  网络数据信息
          */
         QByteArray readAllData(int socketDescriptor = 0);
 
         /*!
          * \brief bytesAvailable    可读位数获取
-         * \param socketDescriptor [in]            socket描述符(作为客户端时缺省)
+         * \param socketDescriptor  [in]            socket描述符(作为客户端时缺省)
          * \return                  网络数据可读长度
          */
         quint64 bytesAvailable(int socketDescriptor = 0);
 
         /*!
          * \brief clearHeartBeatCount   清空心跳帧超时计数值
-         * \param socketDescriptor     [in]            socket描述符(作为客户端时缺省)
+         * \param socketDescriptor      [in]            socket描述符(作为客户端时缺省)
          */
         void clearHeartBeatCount(int socketDescriptor = 0);
+
+        /*!
+         * \brief waitForReadyRead      等待可读
+         * \param msecs                 [in]            毫秒(默认30000毫秒,即30秒)
+         * \param socketDescriptor      [in]            socket描述符(作为客户端时缺省)
+         * \return
+         */
+        bool waitForReadyRead(int msecs = 30000, int socketDescriptor = 0);
+
+        /*!
+         * \brief setLoginCertification 设置是否需要登录验证(若需要验证,请在创建CNetwork对象后,进行登录验证设置)
+         * \param bLogin                [in]            是/否
+         * \param msecs                 [in]            验证超时时间
+         * \param baLoginCert           [in]            验证信息(用户客户端传入自身验证信息)
+         */
+        void setLoginCertification(bool bLogin, int msecs = 3000, QByteArray baLoginCert = 0);
+
+        /*!
+         * \brief acceptConnection      接受连接(当需要登录验证时,需要在验证完毕执行是否接受连接,作为客户端时无效)
+         * \param socketDescriptor      [in]            socket描述符
+         */
+        void acceptConnection(int socketDescriptor);
+
+        /*!
+         * \brief rejectConnection      拒绝连接(当需要登录验证时,需要在验证完毕执行是否拒绝连接,作为客户端时无效)
+         * \param socketDescriptor      [in]            socket描述符
+         */
+        void rejectConnection(int socketDescriptor);
 
     signals:
         /*!
@@ -111,6 +139,14 @@ namespace nsNetwork
          * \brief sgSendHeartBeat       客户端需要发送心跳帧(作为客户端必须实现)
          */
         void sgSendHeartBeat();
+
+        // For Server
+        /*!
+         * \brief sgLoginCertInfo       登录验证信息信号
+         * \param socketDescriptor      socket描述符
+         * \param baLoginCertInfo       验证信息
+         */
+        void sgLoginCertInfo(int socketDescriptor, QByteArray baLoginCertInfo);
 
     private:
         QSharedPointer<CNetworkPrivate>  d_ptr;

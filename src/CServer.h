@@ -76,7 +76,34 @@ namespace nsNetwork
          * \param socketDescriptor      [in]            socket描述符
          * \return CTcpSocket对象指针
          */
-        virtual CTcpSocket *nextPendingConnection(int socketDescriptor);
+        virtual CTcpSocket *nextPendingConnection();
+
+        /*!
+         * \brief waitForReadyRead      等待可读
+         * \param msecs                 [in]            毫秒(默认30000毫秒,即30秒)
+         * \param socketDescriptor      [in]            socket描述符
+         * \return
+         */
+        bool waitForReadyRead(int socketDescriptor, int msecs = 30000);
+
+        /*!
+         * \brief setLoginCertification 设置是否需要登录验证
+         * \param bLogin                [in]            是/否
+         * \param msecs                 [in]            验证超时时间
+         */
+        void setLoginCertification(bool bLogin, int msecs = 3000);
+
+        /*!
+         * \brief acceptConnection      接受连接
+         * \param socketDescriptor      [in]            socket描述符
+         */
+        void acceptConnection(int socketDescriptor);
+
+        /*!
+         * \brief rejectConnection      拒绝
+         * \param socketDescriptor      [in]            socket描述符
+         */
+        void rejectConnection(int socketDescriptor);
 
     protected:
         /*!
@@ -121,10 +148,30 @@ namespace nsNetwork
          */
         void sgReadyRead(int socketDescriptor);
 
+        /*!
+         * \brief sgLoginCertInfo       登录验证信息信号
+         * \param socketDescriptor      socket描述符
+         * \param baLoginCertInfo       验证信息
+         */
+        void sgLoginCertInfo(int socketDescriptor, QByteArray baLoginCertInfo);
+
+    private:
+        /*!
+         * \brief acceptConnection      接受连接
+         * \param tcpClient             [in]            CTcpSocket对象指针
+         */
+        void acceptConnection(CTcpSocket *tcpClient);
+
+
     private:
         QMutex      m_mutex;
         int         m_lPort;
-        QMap<int, CTcpSocket*>              m_mapClientSocket;
+
+        bool        m_bLoginCert;
+        int         m_lOverTime;
+
+        QHash<int, CTcpSocket*>             m_hashClientSocket;
+        QList<int>                          m_listSocketID;
         CServerHeartBeatThread              *m_pHeartBeatThread;
     };
 

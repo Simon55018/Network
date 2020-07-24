@@ -26,14 +26,30 @@ namespace nsNetwork
         CTcpSocket::close();
     }
 
-    bool CClient::start()
+    bool CClient::start(int msecs)
     {
         if( m_pHeartThread != NULL &&
                 QAbstractSocket::ConnectedState != this->state() )
         {
             this->connectToHost(m_sIPAddr, m_lPort);
 
-            if( !this->waitForConnected(3000) )
+            // 等待时间3秒
+            if( this->waitForConnected(msecs) )
+            {
+                if( m_bLoginCert )
+                {
+                    this->send(m_baLoginCertification);
+                    if( this->waitForReadyRead(m_lLoginOverTime) )
+                    {
+                        // 验证失败
+                        if( -1 != this->readAll().toInt() )
+                        {
+                            return false;
+                        }
+                    }
+                }
+            }
+            else
             {
                 return false;
             }
@@ -65,6 +81,13 @@ namespace nsNetwork
     void CClient::clearHeartBeatCount()
     {
         m_pHeartThread->clearHeartBeatCount();
+    }
+
+    void CClient::setLoginCertification(bool bLogin, int msecs, QByteArray baLoginCert)
+    {
+        m_bLoginCert = bLogin;
+        m_lLoginOverTime = msecs;
+        m_baLoginCertification = baLoginCert;
     }
 
     CClientHeartBeatThread::CClientHeartBeatThread(CTcpSocket *pTcpSocket, QObject *parent)

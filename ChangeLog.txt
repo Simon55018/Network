@@ -1,3 +1,5 @@
+r9889 ------peicong.li@excbio.com
+    添加用户验证基础代码
 r9876 ------peicong.li@excbio.com
     修改心跳帧线程的socket对象由QList管理转化为QMap,增加遍历效率
 r9874 ------peicong.li@excbio.com

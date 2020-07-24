@@ -27,33 +27,34 @@ namespace nsNetwork
         d->m_type = emType;
         if( EM_SERVICE == emType )
         {
-            Q_UNUSED(Str_IP);
-            d->m_server = new CServer(lPort);
             if( NULL == d->m_server )
             {
-                return false;
+                d->m_server = new CServer(lPort);
             }
-            connect(d->m_server, SIGNAL(sgReadyRead(int)), this, SIGNAL(sgReadyRead(int)));
-            connect(d->m_server, SIGNAL(sgConnected(int)), this, SIGNAL(sgConnected(int)));
-            connect(d->m_server, SIGNAL(sgDisConnected(int)), this, SIGNAL(sgDisConnected(int)));
+
+            connect(d->m_server, SIGNAL(sgReadyRead(int)), this, SIGNAL(sgReadyRead(int)), Qt::UniqueConnection);
+            connect(d->m_server, SIGNAL(sgConnected(int)), this, SIGNAL(sgConnected(int)), Qt::UniqueConnection);
+            connect(d->m_server, SIGNAL(sgDisConnected(int)), this, SIGNAL(sgDisConnected(int)), Qt::UniqueConnection);
+            connect(d->m_server, SIGNAL(sgLoginCertInfo(int,QByteArray)),
+                    this, SIGNAL(sgLoginCertInfo(int,QByteArray)), Qt::UniqueConnection);
         }
         else if( EM_CLIENT == emType )
         {
-            d->m_client = new CClient(Str_IP, lPort);
             if( NULL == d->m_client )
             {
-                return false;
+                d->m_client = new CClient(Str_IP, lPort);
             }
-            connect(d->m_client, SIGNAL(sgConnected(int)), this, SIGNAL(sgConnected(int)));
-            connect(d->m_client, SIGNAL(sgDisConnected(int)), this, SIGNAL(sgDisConnected(int)));
-            connect(d->m_client, SIGNAL(sgReadyRead(int)), this, SIGNAL(sgReadyRead(int)));
-            connect(d->m_client, SIGNAL(sgSendHeartBeat()), this, SIGNAL(sgSendHeartBeat()));
+
+            connect(d->m_client, SIGNAL(sgConnected(int)), this, SIGNAL(sgConnected(int)), Qt::UniqueConnection);
+            connect(d->m_client, SIGNAL(sgDisConnected(int)), this, SIGNAL(sgDisConnected(int)), Qt::UniqueConnection);
+            connect(d->m_client, SIGNAL(sgReadyRead(int)), this, SIGNAL(sgReadyRead(int)), Qt::UniqueConnection);
+            connect(d->m_client, SIGNAL(sgSendHeartBeat()), this, SIGNAL(sgSendHeartBeat()), Qt::UniqueConnection);
         }
 
         return true;
     }
 
-    bool CNetwork::start()
+    bool CNetwork::start(int msecs)
     {
         Q_D(CNetwork);
         if( EM_SERVICE == d->m_type && NULL != d->m_server )
@@ -62,7 +63,7 @@ namespace nsNetwork
         }
         else if( EM_CLIENT == d->m_type && NULL != d->m_client )
         {
-            return d->m_client->start();
+            return d->m_client->start(msecs);
         }
 
         return false;
@@ -183,6 +184,58 @@ namespace nsNetwork
         }
     }
 
+    bool CNetwork::waitForReadyRead(int msecs, int socketDescriptor)
+    {
+        Q_D(CNetwork);
+
+        if( EM_SERVICE == d->m_type
+                && NULL != d->m_server && socketDescriptor != 0 )
+        {
+            return d->m_server->waitForReadyRead(msecs, socketDescriptor);
+        }
+        else if( EM_CLIENT == d->m_type && NULL != d->m_client )
+        {
+            return d->m_client->waitForReadyRead(msecs);
+        }
+
+        return false;
+    }
+
+    void CNetwork::setLoginCertification(bool bLogin, int msecs, QByteArray baLoginCert)
+    {
+        Q_D(CNetwork);
+
+        if( EM_SERVICE == d->m_type && NULL != d->m_server  )
+        {
+            d->m_server->setLoginCertification(bLogin, msecs);
+        }
+        else if( EM_CLIENT == d->m_type && NULL != d->m_client )
+        {
+            d->m_client->setLoginCertification(bLogin, msecs, baLoginCert);
+        }
+    }
+
+    void CNetwork::acceptConnection(int socketDescriptor)
+    {
+        Q_D(CNetwork);
+
+        if( EM_SERVICE == d->m_type
+                && NULL != d->m_server && socketDescriptor != 0 )
+        {
+            d->m_server->acceptConnection(socketDescriptor);
+        }
+    }
+
+    void CNetwork::rejectConnection(int socketDescriptor)
+    {
+        Q_D(CNetwork);
+
+        if( EM_SERVICE == d->m_type
+                && NULL != d->m_server && socketDescriptor != 0 )
+        {
+            d->m_server->rejectConnection(socketDescriptor);
+        }
+    }
 
     CNetworkPrivate::~CNetworkPrivate()
     {
