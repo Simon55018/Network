@@ -3,7 +3,10 @@
 
 #include <QObject>
 #include <QString>
-#include <QSharedPointer>
+#include <QScopedPointer>
+
+#define STRING_LOGIN_SUCCESS        "LOGIN_SUCCESS"
+#define STRING_LOGIN_FAILURE        "LOGIN_FAILURE"
 
 namespace nsNetwork
 {
@@ -149,7 +152,7 @@ namespace nsNetwork
         void sgLoginCertInfo(int socketDescriptor, QByteArray baLoginCertInfo);
 
     private:
-        QSharedPointer<CNetworkPrivate>  d_ptr;
+        QScopedPointer<CNetworkPrivate>  d_ptr;
     };
 }
 

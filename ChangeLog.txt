@@ -1,3 +1,5 @@
+r9902 ------peicong.li@excbio.com
+    调整QSharedPointer为QScopedPointer
 r9889 ------peicong.li@excbio.com
     添加用户验证基础代码
 r9876 ------peicong.li@excbio.com

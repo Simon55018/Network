@@ -2,6 +2,9 @@
 
 #include <QDateTime>
 
+#define STRING_LOGIN_SUCCESS        "LOGIN_SUCCESS"
+#define STRING_LOGIN_FAILURE        "LOGIN_FAILURE"
+
 namespace nsNetwork
 {
     CClient::CClient(const QString &sAddr, const int lPort)
@@ -39,10 +42,11 @@ namespace nsNetwork
                 if( m_bLoginCert )
                 {
                     this->send(m_baLoginCertification);
+                    // 等待验证时间
                     if( this->waitForReadyRead(m_lLoginOverTime) )
                     {
                         // 验证失败
-                        if( -1 != this->readAll().toInt() )
+                        if( this->readAll().contains(STRING_LOGIN_FAILURE) )
                         {
                             return false;
                         }
