@@ -32,11 +32,11 @@ namespace nsNetwork
                 d->m_server = new CServer(lPort);
             }
 
-            connect(d->m_server, SIGNAL(sgReadyRead(int)), this, SIGNAL(sgReadyRead(int)), Qt::UniqueConnection);
-            connect(d->m_server, SIGNAL(sgConnected(int)), this, SIGNAL(sgConnected(int)), Qt::UniqueConnection);
-            connect(d->m_server, SIGNAL(sgDisConnected(int)), this, SIGNAL(sgDisConnected(int)), Qt::UniqueConnection);
+            connect(d->m_server, SIGNAL(sgReadyRead(int)), this, SIGNAL(sgReadyRead(int)));
+            connect(d->m_server, SIGNAL(sgConnected(int)), this, SIGNAL(sgConnected(int)));
+            connect(d->m_server, SIGNAL(sgDisConnected(int)), this, SIGNAL(sgDisConnected(int)));
             connect(d->m_server, SIGNAL(sgLoginCertInfo(int,QByteArray)),
-                    this, SIGNAL(sgLoginCertInfo(int,QByteArray)), Qt::UniqueConnection);
+                    this, SIGNAL(sgLoginCertInfo(int,QByteArray)));
         }
         else if( EM_CLIENT == emType )
         {
@@ -45,10 +45,10 @@ namespace nsNetwork
                 d->m_client = new CClient(Str_IP, lPort);
             }
 
-            connect(d->m_client, SIGNAL(sgConnected(int)), this, SIGNAL(sgConnected(int)), Qt::UniqueConnection);
-            connect(d->m_client, SIGNAL(sgDisConnected(int)), this, SIGNAL(sgDisConnected(int)), Qt::UniqueConnection);
-            connect(d->m_client, SIGNAL(sgReadyRead(int)), this, SIGNAL(sgReadyRead(int)), Qt::UniqueConnection);
-            connect(d->m_client, SIGNAL(sgSendHeartBeat()), this, SIGNAL(sgSendHeartBeat()), Qt::UniqueConnection);
+            connect(d->m_client, SIGNAL(sgConnected(int)), this, SIGNAL(sgConnected(int)));
+            connect(d->m_client, SIGNAL(sgDisConnected(int)), this, SIGNAL(sgDisConnected(int)));
+            connect(d->m_client, SIGNAL(sgReadyRead(int)), this, SIGNAL(sgReadyRead(int)));
+            connect(d->m_client, SIGNAL(sgSendHeartBeat()), this, SIGNAL(sgSendHeartBeat()));
         }
 
         return true;
@@ -235,6 +235,23 @@ namespace nsNetwork
         {
             d->m_server->rejectConnection(socketDescriptor);
         }
+    }
+
+    QTcpSocket *CNetwork::getTcpSocket(int socketDescriptor)
+    {
+        Q_D(CNetwork);
+
+        if( EM_SERVICE == d->m_type
+                && NULL != d->m_server && socketDescriptor != 0 )
+        {
+            return d->m_server->getTcpSocket(socketDescriptor);
+        }
+        else if( EM_CLIENT == d->m_type && NULL != d->m_client )
+        {
+            return (QTcpSocket*)d->m_client;
+        }
+
+        return NULL;
     }
 
     CNetworkPrivate::~CNetworkPrivate()

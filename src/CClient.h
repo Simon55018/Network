@@ -43,7 +43,7 @@ namespace nsNetwork
          * \param msecs                 [in]            验证超时时间
          * \param baLoginCert           [in]            验证信息
          */
-        void setLoginCertification(bool bLogin, int msecs = 3000, QByteArray baLoginCert = 0);
+        void setLoginCertification(bool bLogin, int msecs = 30000, QByteArray baLoginCert = 0);
 
     signals:
         /*!

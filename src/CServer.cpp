@@ -1,5 +1,10 @@
 #include "CServer.h"
 
+/*! @todo 因为CNetwok.h, CClient.cpp, CServer.cpp   */
+/*!       均有以下定义, 应该新建一个文件进行存储"         */
+#define STRING_LOGIN_SUCCESS        "LOGIN_SUCCESS"
+#define STRING_LOGIN_FAILURE        "LOGIN_FAILURE"
+
 namespace nsNetwork
 {
     CServer::CServer(int lPort)
@@ -17,7 +22,7 @@ namespace nsNetwork
 
         // 开启服务端心跳帧处理线程
         m_pHeartBeatThread = new CServerHeartBeatThread;
-        connect(m_pHeartBeatThread, SIGNAL(sgHeartBreak(int)), this, SLOT(stHeartBreak(int)), Qt::UniqueConnection);
+        connect(m_pHeartBeatThread, SIGNAL(sgHeartBreak(int)), this, SLOT(stHeartBreak(int)));
         m_pHeartBeatThread->start();
     }
 
@@ -131,6 +136,11 @@ namespace nsNetwork
         stDisConnected(socketDescriptor);
     }
 
+    QTcpSocket* CServer::getTcpSocket(int socketDescriptor)
+    {
+        return m_hashClientSocket.value(socketDescriptor);
+    }
+
     bool CServer::waitForReadyRead(int socketDescriptor, int msecs)
     {
         return m_hashClientSocket.value(socketDescriptor)->waitForReadyRead(msecs);
@@ -142,22 +152,26 @@ namespace nsNetwork
         tcpClient->setSocketDescriptor(handle);
 
         addPendingConnection(tcpClient);
+        emit sgConnected(handle);
 
         if( m_bLoginCert )
         {
             if( tcpClient->waitForReadyRead(m_lOverTime) )
             {
                 QByteArray baLogin = tcpClient->readAll();
+                qDebug() << baLogin;
                 emit sgLoginCertInfo(tcpClient->socketDescriptor(), baLogin);
             }
             else
             {
+                this->send(QByteArray(STRING_LOGIN_FAILURE), handle);
                 stDisConnected(tcpClient->socketDescriptor());
             }
         }
         else
         {
             acceptConnection(tcpClient);
+            this->send(QByteArray(STRING_LOGIN_SUCCESS), handle);
         }
     }
 
@@ -175,28 +189,23 @@ namespace nsNetwork
 
         m_pHeartBeatThread->removeTcpSocket(socketDescriptor);
 
-        if( NULL != tcpClient )
-        {
-            delete tcpClient;
-            tcpClient = NULL;
-        }
+        // deleteLater防止该对象为完成操作后直接退出
+        tcpClient->deleteLater();
         m_hashClientSocket.remove(socketDescriptor);
     }
 
     void CServer::stDisConnected(int socketDescriptor)
     {
-        stHeartBreak(socketDescriptor);
-
         emit sgDisConnected(socketDescriptor);
+
+        stHeartBreak(socketDescriptor);
     }
 
     void CServer::acceptConnection(CTcpSocket *tcpClient)
     {
-        connect(tcpClient, SIGNAL(sgReadyRead(int)),  this, SIGNAL(sgReadyRead(int)));
-        connect(tcpClient, SIGNAL(sgConnected(int)), this, SIGNAL(sgConnected(int)));
+        connect(tcpClient, SIGNAL(sgReadyRead(int)), this, SIGNAL(sgReadyRead(int)));
         // 设置为队列形式触发，防止同一时间多个客户端断连
-        connect(tcpClient, SIGNAL(sgDisConnected(int)),
-                this, SLOT(stDisConnected(int)), Qt::QueuedConnection);
+        connect(tcpClient, SIGNAL(sgDisConnected(int)), this, SLOT(stDisConnected(int)));
     }
 
     CServerHeartBeatThread::CServerHeartBeatThread(QObject *parent)

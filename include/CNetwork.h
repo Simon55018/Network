@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QString>
 #include <QScopedPointer>
+#include <QTcpSocket>
 
 #define STRING_LOGIN_SUCCESS        "LOGIN_SUCCESS"
 #define STRING_LOGIN_FAILURE        "LOGIN_FAILURE"
@@ -105,7 +106,7 @@ namespace nsNetwork
          * \param msecs                 [in]            验证超时时间
          * \param baLoginCert           [in]            验证信息(用户客户端传入自身验证信息)
          */
-        void setLoginCertification(bool bLogin, int msecs = 3000, QByteArray baLoginCert = 0);
+        void setLoginCertification(bool bLogin, int msecs = 30000, QByteArray baLoginCert = 0);
 
         /*!
          * \brief acceptConnection      接受连接(当需要登录验证时,需要在验证完毕执行是否接受连接,作为客户端时无效)
@@ -118,6 +119,13 @@ namespace nsNetwork
          * \param socketDescriptor      [in]            socket描述符
          */
         void rejectConnection(int socketDescriptor);
+
+        /*!
+         * \brief getSocket             获取socket对象
+         * \param socketDescriptor      [in]            socket描述符(作为客户端时缺省)
+         * \return socket对象
+         */
+        QTcpSocket* getTcpSocket(int socketDescriptor = 0);
 
     signals:
         /*!

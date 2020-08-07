@@ -91,7 +91,7 @@ namespace nsNetwork
          * \param bLogin                [in]            是/否
          * \param msecs                 [in]            验证超时时间
          */
-        void setLoginCertification(bool bLogin, int msecs = 3000);
+        void setLoginCertification(bool bLogin, int msecs = 30000);
 
         /*!
          * \brief acceptConnection      接受连接
@@ -104,6 +104,13 @@ namespace nsNetwork
          * \param socketDescriptor      [in]            socket描述符
          */
         void rejectConnection(int socketDescriptor);
+
+        /*!
+         * \brief getSocket             获取socket对象
+         * \param socketDescriptor      [in]            socket描述符
+         * \return socket对象
+         */
+        QTcpSocket *getTcpSocket(int socketDescriptor);
 
     protected:
         /*!

@@ -1,3 +1,14 @@
+r9953 ------peicong.li@excbio.com
+    修改登录验证时间默认为30000ms（即30s）
+r9951 ------peicong.li@excbio.com
+    1.取消所有connect的Qt::UniqueConnection
+    2.修改登录验证时间默认为5000ms（即5s）
+r9921 ------peicong.li@excbio.com
+    解决服务器与客户端断连时过早删除tcpClient导致段错误问题
+r9914 ------peicong.li@excbio.com
+    增加获取QTcpSocket指针的功能
+r9911 ------peicong.li@excbio.com
+    添加服务端验证失败后发送"登录失败"标识,以及无需登录时,发送"登录成功"标识
 r9902 ------peicong.li@excbio.com
     调整QSharedPointer为QScopedPointer
 r9889 ------peicong.li@excbio.com

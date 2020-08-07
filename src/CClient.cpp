@@ -2,6 +2,8 @@
 
 #include <QDateTime>
 
+/*! @todo 因为CNetwok.h, CClient.cpp, CServer.cpp   */
+/*!       均有以下定义, 应该新建一个文件进行存储"         */
 #define STRING_LOGIN_SUCCESS        "LOGIN_SUCCESS"
 #define STRING_LOGIN_FAILURE        "LOGIN_FAILURE"
 
