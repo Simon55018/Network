@@ -1,3 +1,10 @@
+r10020 ------peicong.li@excbio.com
+    1.解决服务器登录失败,返回的socket描述符错误问题
+    2.解决客户端登录失败问题
+r10011 ------peicong.li@excbio.com
+    解决客户端验证超时未返回错误的问题
+r9965 ------peicong.li@excbio.com
+    解决服务端模式socket断连之后资源回收失败问题
 r9953 ------peicong.li@excbio.com
     修改登录验证时间默认为30000ms（即30s）
 r9951 ------peicong.li@excbio.com

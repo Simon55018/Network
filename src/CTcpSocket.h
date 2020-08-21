@@ -14,10 +14,8 @@ namespace nsNetwork
     public:
         CTcpSocket()
         {
-            connect(this, SIGNAL(readyRead()),
-                    this, SLOT(stRecieve()), Qt::QueuedConnection);
-            connect(this, SIGNAL(sgSendData(QByteArray)),
-                    this, SLOT(stSend(QByteArray)), Qt::QueuedConnection);
+            connect(this, SIGNAL(readyRead()), this, SLOT(stRecieve()));
+            connect(this, SIGNAL(sgSendData(QByteArray)), this, SLOT(stSend(QByteArray)));
             connect(this, SIGNAL(connected()), this, SLOT(stConnected()));
             connect(this, SIGNAL(disconnected()), this, SLOT(stDisConnected()));
 
@@ -79,12 +77,20 @@ namespace nsNetwork
         {
             if( QAbstractSocket::ConnectedState != this->state() )
             {
-                qWarning("Socket %d state is disconnected", this->socketDescriptor());
+                qWarning("CTcpSocket::send: Socket %d state is disconnected", m_lSocketDescriptor);
                 return false;
             }
             emit sgSendData(baData);
 
             return true;
+        }
+
+        virtual bool setSocketDescriptor(int socketDescriptor, SocketState state = ConnectedState,
+                                         OpenMode openMode = ReadWrite)
+        {
+            m_lSocketDescriptor = socketDescriptor;
+
+            return QAbstractSocket::setSocketDescriptor(socketDescriptor, state, openMode);
         }
 
     signals:
@@ -123,7 +129,7 @@ namespace nsNetwork
         {
             if( QAbstractSocket::ConnectedState != this->state() )
             {
-                qWarning("Socket %d state is disconnected", this->socketDescriptor());
+                qWarning("CTcpSocket::stRecieve: Socket %d state is disconnected", m_lSocketDescriptor);
                 return false;
             }
 
@@ -159,7 +165,8 @@ namespace nsNetwork
          */
         void stConnected()
         {
-            emit sgConnected(this->socketDescriptor());
+            m_lSocketDescriptor = this->socketDescriptor();
+            emit sgConnected(m_lSocketDescriptor);
         }
 
         /*!
@@ -167,12 +174,16 @@ namespace nsNetwork
          */
         void stDisConnected()
         {
-            emit sgDisConnected(this->socketDescriptor());
+            // 由于QAbstractSocket在发送disconnect之前已经把this->socketDescriptor()对应的变量设为-1
+            // 所以用类成员变量发送断连的socket描述符
+            // emit sgDisConnected(this->socketDescriptor());
+            emit sgDisConnected(m_lSocketDescriptor);
         }
 
     private:
         QMutex      m_Mutex;
         int         m_lHeartBeatCount;//心跳计数
+        int         m_lSocketDescriptor;
     };
 } // namespace nsNetwork
 

@@ -53,8 +53,14 @@ namespace nsNetwork
                             return false;
                         }
                     }
+                    // 验证超时
+                    else
+                    {
+                        return false;
+                    }
                 }
             }
+            // 连接超时
             else
             {
                 return false;

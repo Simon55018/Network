@@ -159,13 +159,12 @@ namespace nsNetwork
             if( tcpClient->waitForReadyRead(m_lOverTime) )
             {
                 QByteArray baLogin = tcpClient->readAll();
-                qDebug() << baLogin;
-                emit sgLoginCertInfo(tcpClient->socketDescriptor(), baLogin);
+                emit sgLoginCertInfo(handle, baLogin);
             }
             else
             {
                 this->send(QByteArray(STRING_LOGIN_FAILURE), handle);
-                stDisConnected(tcpClient->socketDescriptor());
+                stDisConnected(handle);
             }
         }
         else
