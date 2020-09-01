@@ -22,13 +22,18 @@ namespace nsNetwork
 
         // 开启服务端心跳帧处理线程
         m_pHeartBeatThread = new CServerHeartBeatThread;
-        connect(m_pHeartBeatThread, SIGNAL(sgHeartBreak(int)), this, SLOT(stHeartBreak(int)));
+        connect(m_pHeartBeatThread, SIGNAL(sgHeartBreak(int)), this, SLOT(stDisConnected(int)));
         m_pHeartBeatThread->start();
     }
 
     CServer::~CServer()
     {
         close();
+        if( NULL != m_pHeartBeatThread )
+        {
+            delete m_pHeartBeatThread;
+            m_pHeartBeatThread = NULL;
+        }
     }
 
     bool CServer::start()
@@ -181,29 +186,27 @@ namespace nsNetwork
         m_pHeartBeatThread->pendingTcpSocket(tcpClient);
     }
 
-    void CServer::stHeartBreak(int socketDescriptor)
+    void CServer::stDisConnected(int socketDescriptor)
     {
+        emit sgDisConnected(socketDescriptor);
+
         // 当心跳包接受异常，说明客户端处于不正常状态，断连并释放资源
         CTcpSocket *tcpClient = m_hashClientSocket.value(socketDescriptor);
 
         m_pHeartBeatThread->removeTcpSocket(socketDescriptor);
+
+        disconnect(tcpClient, SIGNAL(sgReadyRead(int)), this, SIGNAL(sgReadyRead(int)));
+        // 设置为队列形式触发，防止同一时间多个客户端断连
+        disconnect(tcpClient, SIGNAL(sgDisConnected(int)), this, SLOT(stDisConnected(int)));
 
         // deleteLater防止该对象为完成操作后直接退出
         tcpClient->deleteLater();
         m_hashClientSocket.remove(socketDescriptor);
     }
 
-    void CServer::stDisConnected(int socketDescriptor)
-    {
-        emit sgDisConnected(socketDescriptor);
-
-        stHeartBreak(socketDescriptor);
-    }
-
     void CServer::acceptConnection(CTcpSocket *tcpClient)
     {
         connect(tcpClient, SIGNAL(sgReadyRead(int)), this, SIGNAL(sgReadyRead(int)));
-        // 设置为队列形式触发，防止同一时间多个客户端断连
         connect(tcpClient, SIGNAL(sgDisConnected(int)), this, SLOT(stDisConnected(int)));
     }
 

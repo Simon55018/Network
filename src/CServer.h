@@ -127,11 +127,6 @@ namespace nsNetwork
 
     protected slots:
         /*!
-         * \brief stHeartBreak          处理心跳帧终止信号
-         * \param socketDescriptor      socket描述符
-         */
-        void stHeartBreak(int socketDescriptor);
-        /*!
          * \brief stDisConnected        处理断开连接信号
          * \param socketDescriptor      socket描述符
          */
