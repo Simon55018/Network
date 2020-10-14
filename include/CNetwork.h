@@ -52,6 +52,8 @@ namespace nsNetwork
 
         /*!
          * \brief isValid   网络服务是否有效
+         *                  客户端: socket描述符是否有效
+         *                  服务器: 服务器状态是否为Listening状态(即是否在监听)
          * \return          是/否
          */
         bool isValid();//是否有效

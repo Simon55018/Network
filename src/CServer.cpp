@@ -159,11 +159,14 @@ namespace nsNetwork
         addPendingConnection(tcpClient);
         emit sgConnected(handle);
 
-        if( m_bLoginCert )
+        if( m_bLoginCert )  //登录验证
         {
-            if( tcpClient->waitForReadyRead(m_lOverTime) )
+            if( tcpClient->waitForReadyRead(m_lOverTime) )  // 等待发送登录信息
             {
-                QByteArray baLogin = tcpClient->readAll();
+                // 先读登录信息数据长度
+                int length = *(tcpClient->read(1).data());
+                // 获取登录系信息
+                QByteArray baLogin = tcpClient->read(length);
                 emit sgLoginCertInfo(handle, baLogin);
             }
             else

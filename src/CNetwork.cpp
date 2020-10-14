@@ -44,7 +44,6 @@ namespace nsNetwork
             {
                 d->m_client = new CClient(Str_IP, lPort);
             }
-
             connect(d->m_client, SIGNAL(sgConnected(int)), this, SIGNAL(sgConnected(int)));
             connect(d->m_client, SIGNAL(sgDisConnected(int)), this, SIGNAL(sgDisConnected(int)));
             connect(d->m_client, SIGNAL(sgReadyRead(int)), this, SIGNAL(sgReadyRead(int)));
@@ -95,7 +94,11 @@ namespace nsNetwork
         }
         else if( EM_CLIENT == d->m_type && NULL != d->m_client )
         {
-            return d->m_client->isOpen();
+            // 判断isOpen只是简单判断OpenMode是否不为NotOpen
+            // 无法证明socket状态是否有效
+            //return d->m_client->isOpen();
+            // 判断isValid判断是socket描述符是否为-1
+            return d->m_client->isValid();
         }
 
         return false;

@@ -1,6 +1,7 @@
 #include "CClient.h"
 
 #include <QDateTime>
+#include <QDebug>
 
 /*! @todo 因为CNetwok.h, CClient.cpp, CServer.cpp   */
 /*!       均有以下定义, 应该新建一个文件进行存储"         */
@@ -73,6 +74,7 @@ namespace nsNetwork
 
         if( !m_pHeartThread->isRunning() )
         {
+            m_pHeartThread->setHeartBeatEnable(true);
             m_pHeartThread->start();
         }
 
@@ -158,6 +160,7 @@ namespace nsNetwork
             emit sgSendHeartBeat();
             sleep(30);
         }
+        qDebug()<<"Net Heart Beat Thread disconnect!";
         emit sgDisconnected(m_pTcpSocket->socketDescriptor());
     }
 

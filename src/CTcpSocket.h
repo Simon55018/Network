@@ -5,6 +5,7 @@
 #include <QTcpSocket>
 #include <QMutex>
 #include <QThread>
+#include <QHostAddress>
 
 namespace nsNetwork
 {
@@ -77,7 +78,9 @@ namespace nsNetwork
         {
             if( QAbstractSocket::ConnectedState != this->state() )
             {
-                qWarning("CTcpSocket::send: Socket %d state is disconnected", m_lSocketDescriptor);
+                qWarning("(%s:%d): CTcpSocket::send: Sending failed, Socket %d state is %d",
+                                           this->peerAddress().toString().toLocal8Bit().data(), this->peerPort(),
+                                           m_lSocketDescriptor, this->state());
                 return false;
             }
             emit sgSendData(baData);
@@ -129,7 +132,9 @@ namespace nsNetwork
         {
             if( QAbstractSocket::ConnectedState != this->state() )
             {
-                qWarning("CTcpSocket::stRecieve: Socket %d state is disconnected", m_lSocketDescriptor);
+                qWarning("(%s:%d): CTcpSocket::stRecieve: Recieving failed, Socket %d state is %d",
+                                               this->peerAddress().toString().toLocal8Bit().data(), this->peerPort(),
+                                               m_lSocketDescriptor, this->state());
                 return false;
             }
 
@@ -177,6 +182,9 @@ namespace nsNetwork
             // 由于QAbstractSocket在发送disconnect之前已经把this->socketDescriptor()对应的变量设为-1
             // 所以用类成员变量发送断连的socket描述符
             // emit sgDisConnected(this->socketDescriptor());
+            qWarning("(%s:%d): CTcpSocket::stDisConnected Socket %d disconnected!",
+                                        this->peerAddress().toString().toLocal8Bit().data(), this->peerPort(),
+                                        m_lSocketDescriptor);
             emit sgDisConnected(m_lSocketDescriptor);
         }
 
